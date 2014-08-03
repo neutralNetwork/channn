@@ -1,6 +1,5 @@
 package channn
 
-
 import (
 	// "fmt"
 	"math/rand"
@@ -8,16 +7,15 @@ import (
 	"sync/atomic"
 )
 
-
 // MakeNeuronPerceptron sets all weights to the same value
 func MakeNeuronPerceptron(bias float64) *Neuron {
 	z := int32(0)
 	n := &Neuron{
-		InChan: make(chan float64),
-		Bias: bias,
-		NumIn: &z,
-		Control: make(chan *ControlMessage),
-		mutex: &sync.Mutex{},
+		InChan:     make(chan float64),
+		Bias:       bias,
+		NumIn:      &z,
+		Control:    make(chan *ControlMessage),
+		mutex:      &sync.Mutex{},
 		OutWeights: make(map[*chan float64]float64),
 	}
 	go n.Listen()
@@ -29,8 +27,8 @@ func MakeNeuronPerceptron(bias float64) *Neuron {
 // other Neurons or Outputs.
 type Neuron struct {
 	InChan chan float64
-	NumIn *int32
-	Bias float64
+	NumIn  *int32
+	Bias   float64
 
 	mutex *sync.Mutex
 	// Receives control messages in the Listen goroutine.
@@ -63,7 +61,6 @@ func (n *Neuron) Fire(val float64) {
 	}
 }
 
-
 func (n *Neuron) ResetAllWeights(val float64) {
 	// TODO: lock?
 	n.mutex.Lock()
@@ -83,7 +80,7 @@ func (n *Neuron) Listen() {
 	var layerTotal float64
 	for {
 		select {
-		case inVal := <- n.InChan:
+		case inVal := <-n.InChan:
 			layerTotal += inVal
 			counter--
 			if counter == 0 {
@@ -99,7 +96,7 @@ func (n *Neuron) Listen() {
 				counter = *n.NumIn
 			}
 
-		case ctlMsg := <- n.Control:
+		case ctlMsg := <-n.Control:
 			switch ctlMsg.Id {
 			case DESTROY:
 				return
@@ -118,16 +115,16 @@ func (n *Neuron) Listen() {
 
 func MakeInput() *Input {
 	return &Input{
-		Control: make(chan *ControlMessage),
+		Control:    make(chan *ControlMessage),
 		OutWeights: make(map[*chan float64]float64),
-		mutex: &sync.Mutex{},
+		mutex:      &sync.Mutex{},
 	}
 }
 
 type Input struct {
 	OutWeights map[*chan float64]float64
-	Control chan *ControlMessage
-	mutex *sync.Mutex
+	Control    chan *ControlMessage
+	mutex      *sync.Mutex
 }
 
 func (i *Input) ConnectNeurons(next *Neuron) {
@@ -161,29 +158,28 @@ func (i *Input) ResetAllWeights(val float64) {
 	i.mutex.Unlock()
 }
 
-
 func MakeOutput(bias float64) *Output {
 	z := int32(0)
 	o := &Output{
-		InChan: make(chan float64),
-		NumIn: &z,
+		InChan:  make(chan float64),
+		NumIn:   &z,
 		Control: make(chan *ControlMessage),
-		Bias: bias,
+		Bias:    bias,
 		OutChan: make(chan float64),
-		mutex: &sync.Mutex{},
+		mutex:   &sync.Mutex{},
 	}
 	go o.Listen()
 	return o
 }
 
 type Output struct {
-	InChan chan float64
-	NumIn *int32
-	Bias float64
+	InChan  chan float64
+	NumIn   *int32
+	Bias    float64
 	Control chan *ControlMessage
-	Result float64
+	Result  float64
 	OutChan chan float64
-	mutex *sync.Mutex
+	mutex   *sync.Mutex
 }
 
 func (o *Output) Fire(val float64) {
@@ -194,9 +190,8 @@ func (o *Output) Fire(val float64) {
 	}
 }
 
-
 func (o *Output) GetResult() float64 {
-	return <- o.OutChan
+	return <-o.OutChan
 }
 
 func (o *Output) Listen() {
@@ -204,7 +199,7 @@ func (o *Output) Listen() {
 	var layerTotal float64
 	for {
 		select {
-		case inVal := <- o.InChan:
+		case inVal := <-o.InChan:
 			layerTotal += inVal
 			counter--
 
@@ -221,7 +216,7 @@ func (o *Output) Listen() {
 				counter = *o.NumIn
 			}
 
-		case ctlMsg := <- o.Control:
+		case ctlMsg := <-o.Control:
 			switch ctlMsg.Id {
 			case DESTROY:
 				return
