@@ -1,6 +1,7 @@
 package channn
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -18,7 +19,7 @@ func MakePerceptronNeuron(bias float64) *Neuron {
 		OutWeights: make(map[*chan float64]float64),
 		nType:       PERCEPTRON_TYPE,
 	}
-	go n.Listen()
+	go n.ListenPerceptron()
 	return n
 }
 
@@ -40,6 +41,10 @@ type Neuron struct {
 	OutWeights map[*chan float64]float64
 
 	nType      NeuronType
+}
+
+func (n *Neuron) String() string {
+	return fmt.Sprintf("neuron %s", &n)
 }
 
 // AddInput accepts a pointer to an input chan for a node
@@ -66,8 +71,18 @@ func (n *Neuron) Fire(val float64) {
 	}
 }
 
+// FirePerceptron sends 1.0 if the value is >= 1.0, otherwise sends 0.
+func (n *Neuron) FirePerceptron(val float64) {
+	for cp, w := range n.OutWeights {
+		if (val >= 1.0) {
+			*cp <- 1.0 * w
+		} else {
+			*cp <- 0
+		}
+	}
+}
+
 func (n *Neuron) ResetAllWeights(val float64) {
-	// TODO: lock?
 	n.mutex.Lock()
 	for k, _ := range n.OutWeights {
 		n.OutWeights[k] = val
@@ -89,8 +104,46 @@ func (n *Neuron) Listen() {
 			layerTotal += inVal
 			counter--
 			if counter == 0 {
-				// The sum of the SUM(XiWj) + Bias
+				// The sum of the SUM(XiWj) + Bias.
 				n.Fire(layerTotal + n.Bias)
+				layerTotal = 0
+				counter = *n.NumIn
+			}
+
+		case ctlMsg := <-n.Control:
+			switch ctlMsg.Id {
+			case DESTROY:
+				return
+			case SET_WEIGHTS:
+				n.ResetAllWeights(ctlMsg.Value.(float64))
+			case SET_WEIGHT:
+				key := ctlMsg.Key.(*chan float64)
+				value := ctlMsg.Value.(float64)
+				n.OutWeights[key] = value
+			default:
+				continue
+			}
+		}
+	}
+}
+
+// ListenPerceptron reads it's input channel until it as
+// received the the number of inputs connected to it and then
+// sends the sum of the input values + the bias value to the
+// next connected neurons via the FirePerceptron func.
+func (n *Neuron) ListenPerceptron() {
+	n.mutex.Lock()
+	var counter = *n.NumIn
+	n.mutex.Unlock()
+	var layerTotal float64
+	for {
+		select {
+		case inVal := <-n.InChan:
+			layerTotal += inVal
+			counter--
+			if counter == 0 {
+				// The sum of the SUM(XiWj) + Bias.
+				n.FirePerceptron(layerTotal + n.Bias)
 				layerTotal = 0
 				counter = *n.NumIn
 			}

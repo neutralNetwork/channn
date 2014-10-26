@@ -5,14 +5,18 @@ import (
 	"github.com/neutralNetwork/channn"
 )
 
+// Here we implement a bitwise adder with NAND gates.
+// This is an example from the book Neural Networks and Deep Learning,
+// located here:
+// http://neuralnetworksanddeeplearning.com/index.html
 func main() {
 
 	var inputOne = channn.MakePerceptronInput()
 	var inputTwo = channn.MakePerceptronInput()
 
-	var neuronOne = channn.MakeNeuronPerceptron(3)
-	var neuronTwo = channn.MakeNeuronPerceptron(3)
-	var neuronThree = channn.MakeNeuronPerceptron(3)
+	var neuronOne = channn.MakePerceptronNeuron(3)
+	var neuronTwo = channn.MakePerceptronNeuron(3)
+	var neuronThree = channn.MakePerceptronNeuron(3)
 
 	var outCarryBit = channn.MakePerceptronOutput(3)
 
@@ -60,7 +64,4 @@ func main() {
 			fmt.Println("outCarryBit.GetResult()", outCarryBit.GetResult())
 		}
 	}
-
-
-
 }

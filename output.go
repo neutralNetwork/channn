@@ -1,6 +1,7 @@
 package channn
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -30,6 +31,9 @@ type Output struct {
 	OutChan chan float64
 	mutex   *sync.Mutex
 	nType    NeuronType
+}
+func (n *Output) String() string {
+	return fmt.Sprintf("output %s", &n)
 }
 
 // FirePerceptron conditionally sends a value of 1.0 or 0.0
