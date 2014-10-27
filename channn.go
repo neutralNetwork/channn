@@ -3,7 +3,14 @@ package channn
 type NeuronType int
 
 const (
-	_ = iota
-	PERCEPTRON_TYPE NeuronType = 1 << iota
+	PERCEPTRON_TYPE NeuronType = iota
 	SIGMOID_TYPE
+	INPUT_TYPE
+	OUTPUT_TYPE
 )
+
+
+type ChanNeuron interface {
+	Fire(float64)
+	GetType() NeuronType
+}

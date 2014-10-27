@@ -4,17 +4,7 @@ import (
 	// "fmt"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 )
-
-func MakePerceptronInput() *Input {
-	return &Input{
-		Control:    make(chan *ControlMessage),
-		OutWeights: make(map[*chan float64]float64),
-		mutex:      &sync.Mutex{},
-		nType:      PERCEPTRON_TYPE,
-	}
-}
 
 type Input struct {
 	OutWeights map[*chan float64]float64
@@ -23,26 +13,53 @@ type Input struct {
 	nType      NeuronType
 }
 
-func (i *Input) ConnectNeurons(next *Neuron) {
-	// Add a pointer to the input and set a random weight
-	i.OutWeights[&next.InChan] = rand.Float64()
-
-	// Add an input counter for the next Neuron
-	atomic.AddInt32(next.NumIn, 1)
+func (i Input) GetType() NeuronType {
+	return i.nType
 }
-func (i *Input) ConnectOutput(next *Output) {
+// addOutput adds a pointer to the input and set a random weight.
+func (i *Input) addOutput(c *chan float64) {
 	i.mutex.Lock()
-	i.OutWeights[&next.InChan] = rand.Float64()
+	i.OutWeights[c] = rand.Float64()
 	i.mutex.Unlock()
 
-	next.Control <- &ControlMessage{
+}
+func (i *Input) ConnectNeurons(next *ChanNeuron) {
+	ntype := (*next).GetType()
+	msg := &ControlMessage{
 		Id: INCREMENT_INPUT,
 	}
+
+	if ntype == SIGMOID_TYPE {
+		n, success := (*next).(SigmoidNeuron); if !success {
+			panic("failed to case sigmoid neuron")
+		}
+		i.addOutput(&n.InChan)
+		n.Control <- msg
+
+	} else if ntype == PERCEPTRON_TYPE {
+		n, success := (*next).(PerceptronNeuron); if !success {
+			panic("failed to case perceptron neuron")
+		}
+		i.addOutput(&n.InChan)
+		n.Control <- msg
+	}
+
+	// TODO: implement output types for perceptron and sigmoid types
+	// } else if ntype == OUTPUT_TYPE {
+	// 	n, success := (*next).(); if !success {
+	// 		panic("failed to case perceptron neuron")
+	// 	}
+	// 	ptr = &n.InChan
+	// 	n.Control <- msg
+	// }
+
+
+
 }
 
 // Fire sends the input value to the next layer of neurons after
 // multiplying it by the corresponding weight.
-func (i *Input) Fire(val float64) {
+func (i Input) Fire(val float64) {
 	for nextChannel, weight := range i.OutWeights {
 		*nextChannel <- val * weight
 	}
