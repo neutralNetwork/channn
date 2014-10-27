@@ -1,8 +1,12 @@
-channn
+`channn`
 ======
 
-draft of a neural network neurons for arbitrary network architecture
+This is a proof of concept project for creating neural networks that are connected via Go channels.
 
-Example:
+The advantages are:
 
-[https://gist.github.com/stuntgoat/24f75a76d493f95a0fd9](https://gist.github.com/stuntgoat/24f75a76d493f95a0fd9)
+- arbitrary network architecture (see the [adder perceptron](https://github.com/neutralNetwork/channn/blob/sigmoid-neuron/examples/perceptron.go)).
+- train and evaluate on multiple cores.
+
+See the [`examples`](https://github.com/neutralNetwork/channn/tree/sigmoid-neuron/examples).
+
