@@ -27,7 +27,7 @@ type PerceptronOutput struct {
 	Output
 }
 
-// FirePerceptron conditionally sends a value of 1.0 or 0.0
+// Fire conditionally sends a value of 1.0 or 0.0
 // to the output channel.
 func (po *PerceptronOutput) Fire(val float64) {
 	if val >= 1.0 {

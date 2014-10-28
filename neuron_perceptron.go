@@ -29,7 +29,7 @@ type PerceptronNeuron struct {
 	Neuron
 }
 
-// FirePerceptron sends 1.0 if the value is >= 1.0, otherwise sends 0.
+// Fire sends 1.0 if the value is >= 1.0, otherwise sends 0.
 func (n *PerceptronNeuron) Fire(val float64) {
 	for cp, w := range n.OutWeights {
 		if (val >= 1.0) {
