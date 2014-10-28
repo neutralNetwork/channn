@@ -11,8 +11,8 @@ import (
 // http://neuralnetworksanddeeplearning.com/index.html
 func main() {
 
-	var inputOne = channn.MakePerceptronInput()
-	var inputTwo = channn.MakePerceptronInput()
+	var inputOne = channn.MakeInput()
+	var inputTwo = channn.MakeInput()
 
 	var neuronOne = channn.MakePerceptronNeuron(3)
 	var neuronTwo = channn.MakePerceptronNeuron(3)
@@ -37,7 +37,7 @@ func main() {
 	neuronOne.ConnectNeurons(neuronThree)
 	neuronOne.ResetAllWeights(-2)
 
-	neuronOne.ConnectOutput(outCarryBit)
+	neuronOne.ConnectNeurons(outCarryBit)
 	// Need to double weight since we can't connect
 	// to the carry bit neuron twice.
 	neuronOne.Control <- &channn.ControlMessage{
@@ -47,19 +47,19 @@ func main() {
 	}
 
 	// Connect neuron two to the output one
-	neuronTwo.ConnectOutput(outOne)
+	neuronTwo.ConnectNeurons(outOne)
 	neuronTwo.ResetAllWeights(-2)
 
 	// Connect neuron three to the output one
-	neuronThree.ConnectOutput(outOne)
+	neuronThree.ConnectNeurons(outOne)
 	neuronThree.ResetAllWeights(-2)
 
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 2; j++ {
 			fmt.Println("i", i)
 			fmt.Println("j", j)
-			inputOne.Fire(float64(i))
-			inputTwo.Fire(float64(j))
+			inputOne.In(float64(i))
+			inputTwo.In(float64(j))
 			fmt.Println("outOne.GetResult()", outOne.GetResult())
 			fmt.Println("outCarryBit.GetResult()", outCarryBit.GetResult())
 		}

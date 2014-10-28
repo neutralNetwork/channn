@@ -26,13 +26,18 @@ type Neuron struct {
 
 	nType NeuronType
 }
-func (n Neuron) GetType() NeuronType {
-	return n.nType
-}
-
 func (n *Neuron) String() string {
 	return fmt.Sprintf("neuron %s", &n)
 }
+
+// Fire sends the result of the sigmoid function on the
+// sum of (all input weights + bias).
+func (sn *Neuron) Fire(val float64) {
+	for nextPointer, w := range sn.OutWeights {
+		*nextPointer <- Sigmoid(w * val)
+	}
+}
+
 // addOutput adds a pointer to the input and set a random weight.
 func (n *Neuron) addOutput(c *chan float64) {
 	n.mutex.Lock()
@@ -40,38 +45,16 @@ func (n *Neuron) addOutput(c *chan float64) {
 	n.mutex.Unlock()
 
 }
-func (ne *Neuron) ConnectNeurons(next *ChanNeuron) {
-	ntype := (*next).GetType()
+func (ne *Neuron) ConnectNeurons(next ChanNeuron) {
+	// Add weight and pointer to the next neuron's input.
+	inChanPtr := next.GetInChanPtr()
+	ne.addOutput(inChanPtr)
+
+	// Send message to increment the input.
 	msg := &ControlMessage{
 		Id: INCREMENT_INPUT,
 	}
-
-	if ntype == SIGMOID_TYPE {
-		n, success := (*next).(SigmoidNeuron); if !success {
-			panic("failed to case sigmoid neuron")
-		}
-		n.addOutput(&n.InChan)
-		n.Control <- msg
-
-	} else if ntype == PERCEPTRON_TYPE {
-		n, success := (*next).(PerceptronNeuron); if !success {
-			panic("failed to case perceptron neuron")
-		}
-		ne.addOutput(&n.InChan)
-		n.Control <- msg
-	}
-
-	// TODO: implement output types for perceptron and sigmoid types
-	// } else if ntype == OUTPUT_TYPE {
-	// 	n, success := (*next).(); if !success {
-	// 		panic("failed to case perceptron neuron")
-	// 	}
-	// 	ptr = &n.InChan
-	// 	n.Control <- msg
-	// }
-
-
-
+	next.ReceiveControlMsg(msg)
 }
 
 func (n *Neuron) ResetAllWeights(val float64) {
@@ -80,6 +63,16 @@ func (n *Neuron) ResetAllWeights(val float64) {
 		n.OutWeights[k] = val
 	}
 	n.mutex.Unlock()
+}
+
+//////// Satisfy the ChanNeuron interface.
+
+// GetInChanPtr returns a pointer to the input channel
+func (n *Neuron) GetInChanPtr() *chan float64 {
+	return &n.InChan
+}
+func (n *Neuron) ReceiveControlMsg(msg *ControlMessage) {
+	n.Control <- msg
 }
 
 // Listen reads all the inputs and calls the
@@ -112,6 +105,10 @@ func (n *Neuron) Listen() {
 				key := ctlMsg.Key.(*chan float64)
 				value := ctlMsg.Value.(float64)
 				n.OutWeights[key] = value
+			case INCREMENT_INPUT:
+				cur := (*n.NumIn + 1)
+				n.NumIn = &cur
+				counter = *n.NumIn
 			default:
 				continue
 			}

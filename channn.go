@@ -11,6 +11,6 @@ const (
 
 
 type ChanNeuron interface {
-	Fire(float64)
-	GetType() NeuronType
+	GetInChanPtr() *chan float64
+	ReceiveControlMsg(*ControlMessage)
 }
