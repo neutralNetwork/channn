@@ -40,9 +40,8 @@ func (n *PerceptronNeuron) Fire(val float64) {
 	}
 }
 
-// Listen reads all the inputs and calls the
-// sigmoid function on the sum of all inputs
-// and a bais weight.
+// Listen reads all the inputs and calls the Fire method
+// when all values of the input have been received.
 func (n *PerceptronNeuron) Listen() {
 	n.mutex.Lock()
 	var counter = *n.NumIn
