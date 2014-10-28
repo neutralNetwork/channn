@@ -5,60 +5,49 @@ import (
 	"sync"
 )
 
-func MakePerceptronOutput(bias float64) *Output {
-	z := int32(0)
-	o := &Output{
-		InChan:  make(chan float64),
-		NumIn:   &z,
-		Control: make(chan *ControlMessage),
-		Bias:    bias,
-		OutChan: make(chan float64),
-		mutex:   &sync.Mutex{},
-		nType:   PERCEPTRON_TYPE,
-	}
-	go o.ListenPerceptron()
-	return o
-}
-
-
 // Output
 type Output struct {
 	InChan  chan float64
 	NumIn   *int32
 	Bias    float64
-	Control chan *ControlMessage
-	Result  float64
-	OutChan chan float64
+
 	mutex   *sync.Mutex
-	nType    NeuronType
-}
-func (n *Output) String() string {
-	return fmt.Sprintf("output %s", &n)
+
+	Control chan *ControlMessage
+
+	Result  float64
+
+	OutChan chan float64
+
+	nType NeuronType
+
 }
 
-// FirePerceptron conditionally sends a value of 1.0 or 0.0
-// to the output channel.
-func (o *Output) FirePerceptron(val float64) {
-	if val >= 1.0 {
-		o.OutChan <- 1.0
-	} else {
-		o.OutChan <- 0.0
-	}
+func (o *Output) String() string {
+	return fmt.Sprintf("output %s", &o)
 }
 
-// FireSigmoid accepts the value which is the sum of all inputs
+func (o Output) GetResult() float64 {
+	o.Result = <-o.OutChan
+	return o.Result
+}
+
+func (o *Output) GetInChanPtr() *chan float64 {
+	return &o.InChan
+}
+
+func (po *Output) ReceiveControlMsg(msg *ControlMessage) {
+	po.Control <- msg
+}
+
+// Fire accepts the value which is the sum of all inputs
 // with the bias added; it sends the result of calling the sigmoid
 // function on this value.
-func (o *Output) FireSigmoid(val float64) {
-	o.OutChan <- Sigmoid(val)
+func (so *Output) Fire(val float64) {
+	so.OutChan <- Sigmoid(val)
 }
 
-
-func (o *Output) GetResult() float64 {
-	return <-o.OutChan
-}
-
-func (o *Output) ListenPerceptron() {
+func (o *Output) Listen() {
 	var counter = *o.NumIn
 	var layerTotal float64
 	for {
@@ -68,8 +57,8 @@ func (o *Output) ListenPerceptron() {
 			counter--
 
 			if counter == 0 {
-				// The sum of the SUM(XiWj) + Bias
-				o.FirePerceptron(layerTotal + o.Bias)
+				// The sum of the (Xi * Wj)
+				o.Fire(layerTotal + o.Bias)
 				layerTotal = 0.0
 				counter = *o.NumIn
 			}

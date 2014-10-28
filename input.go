@@ -4,15 +4,14 @@ import (
 	// "fmt"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 )
 
-func MakePerceptronInput() *Input {
+func MakeInput() *Input {
 	return &Input{
-		Control:    make(chan *ControlMessage),
 		OutWeights: make(map[*chan float64]float64),
+		Control:    make(chan *ControlMessage),
 		mutex:      &sync.Mutex{},
-		nType:      PERCEPTRON_TYPE,
+		nType:      INPUT_TYPE,
 	}
 }
 
@@ -23,26 +22,31 @@ type Input struct {
 	nType      NeuronType
 }
 
-func (i *Input) ConnectNeurons(next *Neuron) {
-	// Add a pointer to the input and set a random weight
-	i.OutWeights[&next.InChan] = rand.Float64()
-
-	// Add an input counter for the next Neuron
-	atomic.AddInt32(next.NumIn, 1)
-}
-func (i *Input) ConnectOutput(next *Output) {
+// func (i Input) GetType() NeuronType {
+// 	return i.nType
+// }
+// addOutput adds a pointer to the input and set a random weight.
+func (i *Input) addOutput(c *chan float64) {
 	i.mutex.Lock()
-	i.OutWeights[&next.InChan] = rand.Float64()
+	i.OutWeights[c] = rand.Float64()
 	i.mutex.Unlock()
+}
 
-	next.Control <- &ControlMessage{
+func (i *Input) ConnectNeurons(next ChanNeuron) {
+	// Add weight and pointer to the next neuron's input.
+	inChanPtr := next.GetInChanPtr()
+	i.addOutput(inChanPtr)
+
+	// Send message to increment the input.
+	msg := &ControlMessage{
 		Id: INCREMENT_INPUT,
 	}
+	next.ReceiveControlMsg(msg)
 }
 
-// Fire sends the input value to the next layer of neurons after
+// In sends the input value to the next layer of neurons after
 // multiplying it by the corresponding weight.
-func (i *Input) Fire(val float64) {
+func (i *Input) In(val float64) {
 	for nextChannel, weight := range i.OutWeights {
 		*nextChannel <- val * weight
 	}
